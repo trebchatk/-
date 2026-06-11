@@ -7,15 +7,21 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout Source
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 16
+          node-version: '20'
 
       - name: Install Cordova
         run: npm install -g cordova
@@ -24,7 +30,7 @@ jobs:
         run: |
           cordova create build_dir com.terran.pionercalc "Пионерский Калькулятор"
           cd build_dir
-          cordova platform add android
+          cordova platform add android@12.0.0
           rm -rf www/*
           cp ../index.html www/
           cp ../config.xml .
@@ -32,7 +38,7 @@ jobs:
           cordova build android --device
 
       - name: Upload Clean APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Clean-Terran-Calculator
           path: build_dir/platforms/android/app/build/outputs/apk/debug/app-debug.apk
