@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -18,27 +18,132 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Install Cordova
-        run: npm install -g cordova
-
-      - name: Create Cordova Android Project
+      - name: Initialize Webview Wrapper
         run: |
-          cordova create build_dir com.terran.pionercalc "Пионерский Калькулятор"
-          cd build_dir
-          cordova platform add android@12.0.0
-          rm -rf www/*
-          cp ../index.html www/
-          cp ../config.xml .
-          cp ../icon.png .
-          cordova build android --device
+          mkdir -p android-project/app/src/main/assets/www
+          mkdir -p android-project/app/src/main/res/drawable
+          cp index.html android-project/app/src/main/assets/www/
+          cp icon.png android-project/app/src/main/res/drawable/app_icon.png
+
+      - name: Create Native Build Files
+        run: |
+          cd android-project
+          
+          # Создаем файл настроек проекта
+          cat << 'EOF' > settings.gradle
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "PionerCalc"
+          include ':app'
+          EOF
+
+          # Создаем главный build.gradle
+          cat << 'EOF' > build.gradle
+          plugins {
+              id 'com.android.application' version '8.1.1' apply false
+          }
+          EOF
+
+          # Создаем build.gradle для модуля app
+          cat << 'EOF' > app/build.gradle
+          plugins {
+              id 'com.android.application'
+          }
+          android {
+              namespace 'com.terran.pionercalc'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.terran.pionercalc"
+                  minSdk 24
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+          }
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'androidx.webkit:webkit:1.8.0'
+          }
+          EOF
+
+          # Создаем AndroidManifest.xml без лишних разрешений
+          mkdir -p app/src/main
+          cat << 'EOF' > app/src/main/AndroidManifest.xml
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET" />
+              <application
+                  android:allowBackup="true"
+                  android:icon="@drawable/app_icon"
+                  android:label="Пионерский Калькулятор"
+                  android:theme="@style/Theme.AppCompat.NoActionBar">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:theme="@style/Theme.AppCompat.NoActionBar"
+                      android:screenOrientation="portrait">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          # Создаем Java-код для отображения нашего полноэкранного HTML без рамок
+          mkdir -p app/src/main/java/com/terran/pionercalc
+          cat << 'EOF' > app/src/main/java/com/terran/pionercalc/MainActivity.java
+          package com.terran.pionercalc;
+          import android.os.Bundle;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+          import androidx.appcompat.app.AppCompatActivity;
+
+          public class MainActivity extends AppCompatActivity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  WebView webView = new WebView(this);
+                  WebSettings webSettings = webView.getSettings();
+                  webSettings.setJavaScriptEnabled(true);
+                  webSettings.setDomStorageEnabled(true);
+                  webView.setWebViewClient(new WebViewClient());
+                  webView.loadUrl("file:///android_asset/www/index.html");
+                  setContentView(webView);
+              }
+          }
+          EOF
+
+      - name: Build Clean APK with Gradle
+        run: |
+          cd android-project
+          chmod +x ../gradlew || gradle wrapper --gradle-version 8.1.1
+          ./gradlew assembleDebug
 
       - name: Upload Clean APK
         uses: actions/upload-artifact@v4
         with:
           name: Clean-Terran-Calculator
-          path: build_dir/platforms/android/app/build/outputs/apk/debug/app-debug.apk
+          path: android-project/app/build/outputs/apk/debug/app-debug.apk
