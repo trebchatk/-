@@ -1,0 +1,38 @@
+name: Build Clean Android APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+
+      - name: Install Cordova
+        run: npm install -g cordova
+
+      - name: Create Cordova Android Project
+        run: |
+          cordova create build_dir com.terran.pionercalc "Пионерский Калькулятор"
+          cd build_dir
+          cordova platform add android
+          rm -rf www/*
+          cp ../index.html www/
+          cp ../config.xml .
+          cp ../icon.png .
+          cordova build android --device
+
+      - name: Upload Clean APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: Clean-Terran-Calculator
+          path: build_dir/platforms/android/app/build/outputs/apk/debug/app-debug.apk
