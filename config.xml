@@ -1,0 +1,10 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.terran.pionercalc" version="1.0.0" xmlns="http://www.w3.org/ns/widgets">
+    <name>Пионерский Калькулятор</name>
+    <description>Калькулятор времени в стиле Terran Command</description>
+    <author email="your@email.com">Terran</author>
+    <content src="index.html" />
+    <preference name="Fullscreen" value="true" />
+    <preference name="Orientation" value="portrait" />
+    <icon src="icon.png" />
+</widget>

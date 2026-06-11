@@ -1,0 +1,319 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Пионерский Калькулятор</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background-color: #12161A;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            /* Учитываем безопасные зоны современных экранов (вырезы, закругления) */
+            padding: calc(10px + env(safe-area-inset-top)) 15px calc(10px + env(safe-area-inset-bottom)) 15px;
+        }
+
+        .calc-container {
+            width: 100%;
+            height: 100%;
+            max-width: 450px; /* Немного расширим для мобильных */
+            background-color: #12161A;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Растягивает элементы по всей высоте экрана */
+            gap: 10px;
+        }
+
+        .fieldset-container {
+            border: 3px ridge #2A323D;
+            padding: 10px;
+            position: relative;
+            background-color: #12161A;
+        }
+
+        .fieldset-title {
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background-color: #12161A;
+            padding: 0 5px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #A0B0C0;
+            letter-spacing: 1px;
+        }
+
+        .display-service {
+            width: 100%;
+            background-color: #1A1F24;
+            color: #4A3211;
+            font-size: 28px;
+            font-weight: bold;
+            text-align: right;
+            padding: 10px 12px;
+            border: 4px sunken #2A323D;
+            text-shadow: 0 0 5px rgba(74, 50, 17, 0.5);
+        }
+
+        .display-service.active {
+            background-color: #031206;
+            color: #FF9900;
+            border-color: #B36600;
+            text-shadow: 0 0 8px rgba(255, 153, 0, 0.6);
+        }
+
+        .main-display-container {
+            border: 4px ridge #2A323D;
+            background-color: #2A323D;
+            padding: 2px;
+        }
+
+        .display-main {
+            width: 100%;
+            background-color: #031206;
+            color: #00FF33;
+            font-size: 42px;
+            font-weight: bold;
+            text-align: right;
+            padding: 12px;
+            border: 5px sunken #12161A;
+            text-shadow: 0 0 10px rgba(0, 255, 51, 0.6);
+        }
+
+        .mem-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .btn-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            flex-grow: 1; /* Клавиатура займет всё оставшееся свободное место */
+        }
+
+        button {
+            background-color: #1C2229;
+            color: #A0B0C0;
+            border: 3px solid #2A323D;
+            border-style: raised;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: inset 1px 1px 0px #3a4754, 2px 2px 4px rgba(0,0,0,0.4);
+            outline: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:active {
+            background-color: #343F4C;
+            color: #00FF33;
+            box-shadow: inset 2px 2px 3px rgba(0,0,0,0.6);
+        }
+
+        button:disabled {
+            background-color: #15191E;
+            color: #424B54;
+            border-color: #1C2229;
+            box-shadow: none;
+        }
+
+        .span-2 { grid-column: span 2; }
+        .row-span-2 { grid-row: span 2; }
+        .btn-mem { font-size: 14px; padding: 12px 0; }
+
+        .report-label {
+            text-align: center;
+            color: #FFCC00;
+            font-size: 14px;
+            font-weight: bold;
+            min-height: 20px;
+            text-shadow: 0 0 4px rgba(255, 204, 0, 0.4);
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="calc-container">
+    <div class="fieldset-container">
+        <div class="fieldset-title"> НА БАЛАНСЕ В СЛУЖЕНИИ </div>
+        <div id="serviceDisplay" class="display-service">0:00</div>
+    </div>
+
+    <div class="main-display-container">
+        <div id="mainDisplay" class="display-main">0:00</div>
+    </div>
+
+    <div class="mem-grid">
+        <button id="btnCancel" class="btn-mem" onclick="memoryAdd()">ДОБАВИТЬ</button>
+        <button id="btnClearMem" class="btn-mem" onclick="memoryClear()">ОЧИСТИТЬ</button>
+        <button id="btnReport" class="btn-mem" onclick="memoryReport()">ОТЧЁТ</button>
+    </div>
+
+    <div class="btn-grid">
+        <button class="span-2" onclick="onClick('◄═══')">◄═══</button>
+        <button onclick="onClick('CE')">CE</button>
+        <button onclick="onClick('C')">C</button>
+
+        <button onclick="onClick('7')">7</button>
+        <button onclick="onClick('8')">8</button>
+        <button onclick="onClick('9')">9</button>
+        <button onclick="onClick('-')">-</button>
+
+        <button onclick="onClick('4')">4</button>
+        <button onclick="onClick('5')">5</button>
+        <button onclick="onClick('6')">6</button>
+        <button onclick="onClick('+')">+</button>
+
+        <button onclick="onClick('1')">1</button>
+        <button onclick="onClick('2')">2</button>
+        <button onclick="onClick('3')">3</button>
+        <button class="row-span-2" onclick="onClick('=')">=</button>
+
+        <button class="span-2" onclick="onClick('0')">0</button>
+        <button onclick="onClick(':')">:</button>
+    </div>
+
+    <div id="reportLabel" class="report-label"></div>
+</div>
+
+<script>
+    const FIREBASE_URL = "https://terran-calc-default-rtdb.europe-west1.firebasedatabase.app/saves.json";
+    let totalMinutes = 0, currentInput = "", lastOp = null, newNumberStart = true, serviceMinutes = 0;
+
+    loadMemory();
+    setInterval(pollFirebase, 3000);
+
+    function loadMemory() {
+        const localData = localStorage.getItem("terran_memory");
+        if (localData) { serviceMinutes = parseInt(localData) || 0; updateServiceDisplay(); }
+        fetch(FIREBASE_URL).then(res => res.json()).then(data => {
+            if (data && data.service_minutes !== undefined && data.service_minutes !== serviceMinutes) {
+                serviceMinutes = data.service_minutes;
+                localStorage.setItem("terran_memory", serviceMinutes);
+                updateServiceDisplay();
+            }
+        }).catch(() => {});
+    }
+
+    function pollFirebase() {
+        fetch(FIREBASE_URL).then(res => res.json()).then(data => {
+            if (data && data.service_minutes !== undefined && data.service_minutes !== serviceMinutes) {
+                serviceMinutes = data.service_minutes;
+                localStorage.setItem("terran_memory", serviceMinutes);
+                updateServiceDisplay();
+            }
+        }).catch(() => {});
+    }
+
+    function saveMemory() {
+        localStorage.setItem("terran_memory", serviceMinutes);
+        fetch(FIREBASE_URL, {
+            method: 'PUT',
+            body: JSON.stringify({ service_minutes: serviceMinutes }),
+            headers: { 'Content-Type': 'application/json' }
+        }).catch(() => {});
+    }
+
+    function updateButtonStates() {
+        const hours = Math.floor(serviceMinutes / 60);
+        const minutes = serviceMinutes % 60;
+        document.getElementById("btnClearMem").disabled = (serviceMinutes === 0);
+        document.getElementById("btnReport").disabled = (hours === 0);
+    }
+
+    function updateServiceDisplay() {
+        const display = document.getElementById("serviceDisplay");
+        display.innerText = fromMinutes(serviceMinutes);
+        if (serviceMinutes === 0) display.classList.remove("active"); else display.classList.add("active");
+        updateButtonStates();
+    }
+
+    function memoryAdd() {
+        const mainDisplay = document.getElementById("mainDisplay");
+        serviceMinutes += toMinutes(mainDisplay.innerText);
+        saveMemory(); updateServiceDisplay();
+        totalMinutes = 0; currentInput = ""; lastOp = null; newNumberStart = true;
+        mainDisplay.innerText = "0:00";
+    }
+
+    function memoryClear() { serviceMinutes = 0; saveMemory(); updateServiceDisplay(); }
+
+    function memoryReport() {
+        const hours = Math.floor(serviceMinutes / 60);
+        const reportLabel = document.getElementById("reportLabel");
+        if (hours > 0) {
+            reportLabel.innerText = `${hours} ЧАСОВ ОТПРАВЛЕНО В ОТЧЁТ`;
+            serviceMinutes = serviceMinutes % 60;
+        } else {
+            reportLabel.innerText = "0 ЧАСОВ ОТПРАВЛЕНО В ОТЧЁТ";
+        }
+        saveMemory(); updateServiceDisplay();
+    }
+
+    function toMinutes(valStr) {
+        if (!valStr || valStr === ":") return 0;
+        const sign = valStr.includes("-") ? -1 : 1;
+        valStr = valStr.replace("-", "");
+        if (valStr.includes(":")) {
+            const parts = valStr.split(":");
+            return ((parseInt(parts[0]) || 0) * 60 + (parseInt(parts[1]) || 0)) * sign;
+        }
+        return (parseInt(valStr) || 0) * 60 * sign;
+    }
+
+    function fromMinutes(totalM) {
+        const absM = Math.abs(totalM);
+        return `${totalM < 0 ? "-" : ""}${Math.floor(absM / 60)}:${(absM % 60 < 10 ? '0' : '')}${absM % 60}`;
+    }
+
+    function onClick(char) {
+        const mainDisplay = document.getElementById("mainDisplay");
+        if (!isNaN(char) || char === ":") {
+            if (newNumberStart) { currentInput = char; newNumberStart = false; }
+            else { if (char === ":" && currentInput.includes(":")) return; currentInput += char; }
+            mainDisplay.innerText = currentInput;
+        } else if (char === '◄═══') {
+            currentInput = currentInput.slice(0, -1);
+            mainDisplay.innerText = currentInput ? currentInput : "0:00";
+        } else if (char === 'CE') { currentInput = ""; mainDisplay.innerText = "0:00"; }
+        自由
+        else if (char === 'C') { totalMinutes = 0; currentInput = ""; lastOp = null; newNumberStart = true; mainDisplay.innerText = "0:00"; }
+        else if (['+', '-', '='].includes(char)) {
+            const val = currentInput ? toMinutes(currentInput) : 0;
+            if (lastOp === "+") totalMinutes += val;
+            else if (lastOp === "-") totalMinutes -= val;
+            else if (!totalMinutes && val) totalMinutes = val;
+            const resStr = fromMinutes(totalMinutes);
+            mainDisplay.innerText = resStr;
+            if (char === "=") { lastOp = null; currentInput = resStr; }
+            else { lastOp = char; currentInput = ""; newNumberStart = true; }
+        }
+    }
+</script>
+</body>
+</html>
